@@ -8,9 +8,9 @@
 
 ## 📖 概要 (Overview)
 
-**Bi-Cortex SNN (BC-SNN)** は、エッジデバイス上での自律的なリアルタイム学習と適応を目指す、新しいアーキテクチャの Spiking Neural Network (SNN) です。
+**Bi-Cortex SNN (BC-SNN)** は、エッジデバイス上での自律的なリアルタイム学習と適応を目指す、新しいアーキテクチャの Spiking Neural Network (SNN) 構想です。
 
-従来の深層学習（誤差逆伝播法）に依存せず、**「意味的共鳴ゲーティング (Semantic Resonance Gating)」** と呼ばれる独自の局所学習則を用いることで、低演算コストでの文脈学習を実現します。
+従来の深層学習（誤差逆伝播法）に依存せず、**「意味的共鳴ゲーティング (Semantic Resonance Gating)」** と呼ばれる独自の局所学習則を用いることで、低演算コストでの文脈学習の実現を目指します。
 
 ### コア・コンセプト
 本モデルは、単一のニューロン群を機能的に2つの領域（Cortex）に区分して動作します。
@@ -26,6 +26,8 @@
 * **Layer-less Architecture:** 物理的な層構造を持たず、フラットなニューロン配列とIDマップによって構造を定義。
 * **Dual Traces:** 「即時トレース」と「適格性トレース(Eligibility Trace)」を併用し、数秒〜数十秒のラグがある事象間の因果関係を学習可能。
 * **Edge Native:** バックプロパゲーション不要のため、マイコンやFPGAなどのリソース制約環境でも動作可能（予定）。
+
+※ 現時点では上記の特徴は設計上の提案であり、実装および実現性はまだ未確認です。実験と評価を通じて検証・調整を行う予定です。
 
 ---
 
@@ -89,3 +91,36 @@ bicortex-snn/
 ├── notebooks/         # 実験用 Jupyter Notebooks
 ├── requirements.txt   # Python依存ライブラリ
 └── README.md          # 本ファイル
+
+```
+
+---
+
+## 🗺️ ロードマップ (Roadmap)
+
+現在の開発フェーズは **Phase 0** です。
+実現性については未確認ですが、以下の段階的な目標を設定しています。
+
+* [ ] **Phase 0: Project Setup & Preparation**
+* リポジトリ管理、Dev Containers 環境構築、基礎ドキュメント整備。
+
+* [ ] **Phase 1: Proof of Concept** (Core Logic Verification)
+* 基本的なLIFモデルと共鳴学習則(SRG)の実装・検証。
+
+
+* [ ] **Phase 2: Visual Integration**
+* CNNバックボーン(MobileNetV3)の統合と空間ナビゲーション。
+
+
+* [ ] **Phase 3: Real-time Adaptation**
+* ゲーム環境での動的なルール変化への適応テスト。
+
+
+* [ ] **Phase 4: Spiking LLM Experiment**
+* 思考野への Spiking LLM (RWKV等) 統合実験。
+
+
+
+詳細な進捗は [作業一覧_チェックリスト.md](docs/作業一覧_チェックリスト.md) (またはプロジェクト管理ツール) を参照してください。
+
+---
