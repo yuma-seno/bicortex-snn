@@ -12,9 +12,13 @@ services:
             PULSE_SERVER: $PULSE_SERVER
             WAYLAND_DISPLAY: $WAYLAND_DISPLAY
             XDG_RUNTIME_DIR: $XDG_RUNTIME_DIR
-            # ROCm用の環境変数を追加
-            HSA_OVERRIDE_GFX_VERSION: "10.3.0" # ※GPUによって変更が必要な場合あり (RX6000系など)
+            
+            # APU (Radeon 680M) 用設定
+            HSA_OVERRIDE_GFX_VERSION: "10.3.0"
+            HSA_ENABLE_SDMA: "0"
+            
         network_mode: "host"
+        ipc: "host"
         volumes:
             - ../..:/workspace
             - /tmp/.X11-unix:/tmp/.X11-unix
@@ -22,7 +26,6 @@ services:
             - /mnt/wslg:/mnt/wslg
             - /dev/bus/usb:/dev/bus/usb
             - /dev/snd:/dev/snd
-        # 変更: AMD GPU用のデバイスマッピングと権限
         devices:
             - "/dev/kfd:/dev/kfd"
             - "/dev/dri:/dev/dri"
