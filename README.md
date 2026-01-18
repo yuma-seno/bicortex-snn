@@ -17,17 +17,20 @@
 
 1.  **思考野 (Thinking Cortex / TC):**
     * **役割:** 特徴抽出、概念認識、即時的な反射行動。
+    * **構造:** **Input $\to$ Hidden $\to$ Motor** の3層構造を持ち、事前知識に基づく推論を行います。
     * **特性:** パラメータは**固定 (Fixed)**。CNNやLLMなどの事前学習済みモデルの知識を流用します。
 2.  **記憶野 (Memory Cortex / MC):**
     * **役割:** 短期記憶の保持、時間的文脈の統合。
+    * **構造:** ランダムに結合されたリザーバ層。
     * **特性:** パラメータは**動的 (Plastic)**。思考野が「意味」を検知した瞬間のみ可塑性が活性化し、因果関係を学習します。
 
 ### 主な特徴
 * **Layer-less Architecture:** 物理的な層構造を持たず、フラットなニューロン配列とIDマップによって構造を定義。
 * **Dual Traces:** 「即時トレース」と「適格性トレース(Eligibility Trace)」を併用し、数秒〜数十秒のラグがある事象間の因果関係を学習可能。
+* **Stable Learning:** Soft-bound Hebbian 則と全体減衰 (Global Decay) により、長時間の稼働でも重みが飽和しない安定性を確保。
 * **Edge Native:** バックプロパゲーション不要のため、マイコンやFPGAなどのリソース制約環境でも動作可能（予定）。
 
-※ 現時点では上記の特徴は設計上の提案であり、実装および実現性はまだ未確認です。実験と評価を通じて検証・調整を行う予定です。
+※ 現時点では上記の特徴は設計上の提案であり、Phase 1 (PoC) にて検証中です。
 
 ---
 
@@ -98,10 +101,9 @@ bicortex-snn/
 
 ## 🗺️ ロードマップ (Roadmap)
 
-現在の開発フェーズは **Phase 0** です。
-実現性については未確認ですが、以下の段階的な目標を設定しています。
+現在の開発フェーズは **Phase 1** です。
 
-* [ ] **Phase 0: Project Setup & Preparation**
+* [x] **Phase 0: Project Setup & Preparation**
 * リポジトリ管理、Dev Containers 環境構築、基礎ドキュメント整備。
 
 * [ ] **Phase 1: Proof of Concept** (Core Logic Verification)

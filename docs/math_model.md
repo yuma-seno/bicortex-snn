@@ -12,10 +12,10 @@ $$v_i(t) = v_i(t-1) \cdot \alpha + I_{ext}(t) + \sum_{j} w_{ij} x_{fast, j}(t-1)
 | 数式記号 | 変数名 | 説明 | 設定値(例) |
 | :--- | :--- | :--- | :--- |
 | $v_i(t)$ | `self.v` | 膜電位 (Membrane Potential) | 初期値 0.0 |
-| $\alpha$ | `self.alpha` | 減衰係数 ($\exp(-dt/\tau_m)$) | $\tau_m=20ms \to \approx 0.95$ |
+| $\alpha$ | `self.alpha` | 減衰係数 ($\exp(-dt/\tau_m)$) | $\tau_m=20ms$ |
 | $I_{ext}(t)$ | `input_current` | 外部入力電流 | - |
-| $w_{ij}$ | `self.W` | 結合荷重行列 | - |
 | $v_{th}$ | `self.v_th` | 発火閾値 | 1.0 |
+| $Refractory$| `refractory_steps` | 不応期ステップ数 | $\max(1, 2.0ms/dt)$ |
 
 ---
 
@@ -23,47 +23,44 @@ $$v_i(t) = v_i(t-1) \cdot \alpha + I_{ext}(t) + \sum_{j} w_{ij} x_{fast, j}(t-1)
 
 時間的信用割当問題（Temporal Credit Assignment）を解決するため、時定数の異なる2つのトレース変数を保持します。
 
-### A. Immediate Trace (即時トレース)
-シナプス後電流 (PSC) の近似として使用されます。
-
-* **数式:** $x_{fast}(t) = x_{fast}(t-1) \cdot \alpha_{fast} + S(t)$
-* **変数名:** `self.x_fast`
-* **時定数:** `self.tau_fast` = 20.0 ms
-* **用途:** 通常の信号伝達 ($W \cdot x_{fast}$)
-
-### B. Eligibility Trace (適格性トレース)
-因果関係の学習（SRG）に使用される「発火の残り香」です。
-
-* **数式:** $e_{slow}(t) = e_{slow}(t-1) \cdot \alpha_{slow} + S(t)$
-* **変数名:** `self.e_slow`
-* **時定数:** `self.tau_slow` = 2000.0 ms (2秒)
-* **用途:** 学習時のプレニューロン項 ($\Delta W \propto Post \cdot Pre_{slow}$)
+* **$x_{fast}$ (即時トレース):** $\tau \approx 20ms$。シナプス後電流(PSC)として使用。
+* **$e_{slow}$ (適格性トレース):** $\tau \approx 2000ms$。学習時の因果関係特定に使用。
 
 ---
 
-## 3. Refractory Period (不応期)
+## 3. Learning Algorithm: SRG (Soft-bound Hebbian)
 
-発火直後のニューロンは一定時間再発火できません。
+Phase 1.3 (v1.2) より、単純加算ではなく、重みの飽和を防ぐ **Soft-bound** 方式と **Global Decay** を採用しました。
 
-* **変数名:** `self.refractory_count`
-* **期間:** 2.0 ms
-* **動作:** カウントが 0 になるまで $v(t)$ を強制的に 0 にリセットし続ける。
+### 3.1 ゲート信号 $G(t)$ (Moving Average & Ratio)
+思考野の活動の移動平均（MA）が、全思考ニューロン数に対する所定の割合（Ratio）を超えた場合にゲートが開きます。
+
+$$Activity_{MA}(t) = Activity_{MA}(t-1) \cdot (1-\alpha_{ma}) + \sum S_{think}(t) \cdot \alpha_{ma}$$
+$$G(t) = 1 \quad \text{if} \quad Activity_{MA}(t) \ge (N_{think} \cdot \text{gate\_ratio}) \quad \text{else} \quad 0$$
+
+### 3.2 重み更新則 (Soft-bound)
+重みが上下限（$W_{max}, W_{min}$）に近づくにつれて更新量を減衰させ、自然な境界維持を行います。
+
+**A. 興奮性シナプス ($Pre \in Exc$) の場合:**
+$$\Delta w_{ij} = (W_{max} - w_{ij}) \cdot \eta \cdot G(t) \cdot e_{slow, j}(t)$$
+
+**B. 抑制性シナプス ($Pre \in Inh$) の場合:**
+$$\Delta w_{ij} = -1 \cdot (w_{ij} - W_{min}) \cdot \eta \cdot G(t) \cdot e_{slow, j}(t)$$
+※ 抑制性は「より負の方向」へ強化される。
+
+### 3.3 全体減衰 (Global Weight Decay)
+可塑的結合（Plastic）に対して、毎ステップわずかな減衰を適用し、恒常性を維持します。
+$$w_{ij}(t) = w_{ij}(t) \cdot (1 - \text{global\_decay})$$
 
 ---
 
-## 4. Learning Constraints (Dale's Law Preservation)
+## 4. Known Limitations & Future Consideration
 
-学習（SRG）による重み更新時、ニューロンの生物学的性質（興奮性/抑制性）が反転しないよう、以下の制約（クリッピング）を強制的に適用する。
+現在の数学モデルにおける既知の制約事項です（Phase 1では許容）。
 
-### 制約ルール
-更新後の重み $W_{new}$ は、Pre-synaptic（送り手）ニューロンの種類に応じて以下の範囲に制限される。
-
-1.  **興奮性ニューロン由来 ($j \in \text{Excitatory}$)**:
-    $$0.0 \le w_{ij} \le 2.0$$
-    * 正の値（興奮性）を維持する。負になることは許されない。
-
-2.  **抑制性ニューロン由来 ($j \in \text{Inhibitory}$)**:
-    $$-2.0 \le w_{ij} \le 0.0$$
-    * 負の値（抑制性）を維持する。正になることは許されない。
-
-※ これにより、学習によって「ブレーキ役」が「アクセル役」に変質してしまう現象を防ぐ。
+1.  **STDPのタイミング依存性:**
+    * 現在は Pre(Slow) $\times$ Post(Spike) の因果のみを見ており、ミリ秒単位のタイミング差（Postが先かPreが先か）による厳密なSTDPは実装していない。数秒単位の行動学習には現状で十分と判断している。
+2.  **数値安定性:**
+    * $\tau_{slow}=2000ms$ の減衰率は非常に 1.0 に近いため、浮動小数点の丸め誤差の影響を受ける可能性がある。
+3.  **学習ループの計算効率:**
+    * 現在は可読性を優先し Python ループ内でマスク処理を行っている。大規模化の際はベクトル化が必要。
