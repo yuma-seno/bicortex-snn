@@ -2,7 +2,7 @@
 
 **Bi-Cortex Spiking Neural Network: An Autonomous Real-Time Learning Architecture for Edge Devices**
 
-![Status](https://img.shields.io/badge/Status-Phase%201%20(PoC)-blue)
+![Status](https://img.shields.io/badge/Status-Phase%202%20(Visual)-orange)
 ![Python](https://img.shields.io/badge/Python-3.10%2B-green)
 ![License](https://img.shields.io/badge/License-MIT-lightgrey)
 
@@ -22,15 +22,15 @@
 2.  **記憶野 (Memory Cortex / MC):**
     * **役割:** 短期記憶の保持、時間的文脈の統合。
     * **構造:** ランダムに結合されたリザーバ層。
-    * **特性:** パラメータは**動的 (Plastic)**。思考野が「意味」を検知した瞬間のみ可塑性が活性化し、因果関係を学習します。
+    * **特性:** **内部結合が動的 (Plastic)** に変化する連想記憶モデル。
+    * **インターフェース:** 思考野への入出力ルールは固定されており、記憶野内部の配線を書き換えることで情報の流れ（連想）を制御します。
+    * **順応:** ニューロン自体が疲労することで、無限の発火暴走を防ぎ、自然な忘却（Transient dynamics）を実現します。
 
 ### 主な特徴
 * **Layer-less Architecture:** 物理的な層構造を持たず、フラットなニューロン配列とIDマップによって構造を定義。
 * **Dual Traces:** 「即時トレース」と「適格性トレース(Eligibility Trace)」を併用し、数秒〜数十秒のラグがある事象間の因果関係を学習可能。
-* **Stable Learning:** Soft-bound Hebbian 則と全体減衰 (Global Decay) により、長時間の稼働でも重みが飽和しない安定性を確保。
+* **Stable Learning:** Soft-bound Hebbian 則と順応 (Adaptation) により、長時間の稼働でも重みが飽和・暴走しない安定性を確保。
 * **Edge Native:** バックプロパゲーション不要のため、マイコンやFPGAなどのリソース制約環境でも動作可能（予定）。
-
-※ 現時点では上記の特徴は設計上の提案であり、Phase 1 (PoC) にて検証中です。
 
 ---
 
@@ -106,7 +106,7 @@ bicortex-snn/
 * [x] **Phase 0: Project Setup & Preparation**
 * リポジトリ管理、Dev Containers 環境構築、基礎ドキュメント整備。
 
-* [ ] **Phase 1: Proof of Concept** (Core Logic Verification)
+* [x] **Phase 1: Proof of Concept** (Core Logic Verification)
 * 基本的なLIFモデルと共鳴学習則(SRG)の実装・検証。
 
 
