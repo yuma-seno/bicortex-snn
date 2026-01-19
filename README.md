@@ -32,6 +32,8 @@
 * **Stable Learning:** Soft-bound Hebbian 則と順応 (Adaptation) により、長時間の稼働でも重みが飽和・暴走しない安定性を確保。
 * **Edge Native:** バックプロパゲーション不要のため、マイコンやFPGAなどのリソース制約環境でも動作可能（予定）。
 
+※ 現時点では上記の特徴は設計上の提案であり、開発を通して検証中です。
+
 ---
 
 ## 🚀 環境構築 (Getting Started)

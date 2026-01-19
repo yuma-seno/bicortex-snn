@@ -26,15 +26,26 @@ $$v_{adaptive}(t) = v_{adaptive}(t-1) \cdot \alpha_{adapt} + \beta \cdot S_i(t-1
 
 ## 2. Dual Traces (2つのトレース変数)
 
-* **$x_{fast}$ (即時トレース):** $\tau \approx 5ms$。シナプス後電流(PSC)として使用。キレの良い応答のため短めに設定。
+* **$x_{fast}$ (即時トレース):** $\tau \approx 5ms$。シナプス後電流(PSC)として使用。
 * **$e_{slow}$ (適格性トレース):** $\tau \approx 2000ms$。学習時の因果関係特定に使用。
 
----
+## 3. Learning Algorithm: 3-Factor Rule (SRG + RL)
 
-## 3. Learning Algorithm: SRG (Soft-bound Hebbian)
+本モデルは、従来の「共鳴 (Hebbian)」に加え、「報酬 (Reinforcement)」を取り入れた3要素学習則を採用しています。
 
-（変更なし）
-ただし、学習対象（Plastic Mask）はインターフェース結合（Memory -> Motor）のみに限定される。
+### 更新則
+$$\Delta w_{ij}(t) = \Delta w_{Hebb}(t) + \Delta w_{RL}(t)$$
 
----
-（以下変更なし）
+#### A. 共鳴学習 (SRG: Semantic Resonance Gating)
+思考野が活性化している（ゲートが開いている）時のみ、因果関係を強化する。
+$$\Delta w_{Hebb} = \eta \cdot G(t) \cdot Post_i(t) \cdot Pre_{slow, j}(t)$$
+
+#### B. 強化学習 (RL: Dopamine Modulation)
+環境からの報酬信号 $R(t)$ に基づき、シナプスを強化または抑制する。
+$$\Delta w_{RL} = \eta \cdot R(t) \cdot Pre_{slow, j}(t) \cdot \lambda_{RL}$$
+
+* $R(t) > 0$: **LTP (Long-Term Potentiation)** - 正の報酬による強化。
+* $R(t) < 0$: **LTD (Long-Term Depression)** - 罰（誤答）による抑制。
+* $R(t) = 0$: 変化なし。
+
+この組み合わせにより、**「意味のある瞬間に（SRG）」**かつ**「結果が良かった行動（RL）」**のみを学習することが可能となる。
