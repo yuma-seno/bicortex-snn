@@ -1,15 +1,10 @@
 # Mathematical Model & Implementation Details
 
-## 1. Neuron Model (Adaptive LIF)
-
-計算コストを最小化するため、離散時間における積分発火モデルに、**適応的閾値 (Adaptive Threshold)** を導入しています。
+## 1. Neuron Model (LIF with Trace)
 
 ### 数式定義
 $$v_i(t) = v_i(t-1) \cdot \alpha + I_{ext}(t) + \sum_{j} w_{ij} x_{fast, j}(t-1)$$
-$$v_{th}(t) = v_{base} + v_{adaptive}(t)$$
-$$v_{adaptive}(t) = v_{adaptive}(t-1) \cdot \alpha_{adapt} + \beta \cdot S_i(t-1)$$
-
-発火条件: $v_i(t) \ge v_{th}(t)$
+$$v_{th} = v_{base}$$
 
 ### コード上の変数対応 (`src/core/engine.py`)
 
@@ -17,35 +12,36 @@ $$v_{adaptive}(t) = v_{adaptive}(t-1) \cdot \alpha_{adapt} + \beta \cdot S_i(t-1
 | :--- | :--- | :--- | :--- |
 | $v_i(t)$ | `self.v` | 膜電位 | 初期値 0.0 |
 | $\alpha$ | `self.alpha` | 電圧減衰係数 | $\tau_m=20ms$ |
-| $v_{base}$ | `self.v_base` | 基準閾値 | 1.0 |
-| $v_{adaptive}$ | `self.v_th_adaptive` | 閾値オフセット | 発火ごとに上昇 |
-| $\beta$ | `self.adaptation_beta` | 閾値上昇率（疲れやすさ） | 0.5 |
-| $\alpha_{adapt}$ | `self.adaptation_decay` | 疲労回復係数 | $\tau_{adapt}=50ms$ |
+| $v_{base}$ | `self.v_base` | 基準閾値 | 1.0 ~ 2.0 |
 
 ---
 
-## 2. Dual Traces (2つのトレース変数)
+## 2. Dual Traces
 
-* **$x_{fast}$ (即時トレース):** $\tau \approx 5ms$。シナプス後電流(PSC)として使用。
-* **$e_{slow}$ (適格性トレース):** $\tau \approx 2000ms$。学習時の因果関係特定に使用。
+* **$x_{fast}$:** シナプス後電流(PSC)。信号伝達用。
+* **$e_{slow}$:** 適格性トレース。短期的な因果関係の特定に使用される。
 
-## 3. Learning Algorithm: 3-Factor Rule (SRG + RL)
+## 3. Association Algorithm: Trace-based Linking
 
-本モデルは、従来の「共鳴 (Hebbian)」に加え、「報酬 (Reinforcement)」を取り入れた3要素学習則を採用しています。
+記憶野内部の結合変更は、能力の獲得（Learning）ではなく、**一時的な連合の形成（Association Formation）**として定義される。
 
 ### 更新則
-$$\Delta w_{ij}(t) = \Delta w_{Hebb}(t) + \Delta w_{RL}(t)$$
+$$\Delta w_{ij}(t) = \Delta w_{Link}(t) - w_{decay}(t)$$
 
-#### A. 共鳴学習 (SRG: Semantic Resonance Gating)
-思考野が活性化している（ゲートが開いている）時のみ、因果関係を強化する。
-$$\Delta w_{Hebb} = \eta \cdot G(t) \cdot Post_i(t) \cdot Pre_{slow, j}(t)$$
+#### A. 連合形成 (Linking / RL-like)
+思考野からの報酬信号 $R(t)$ に基づき、因果関係にあるシナプスを一時的に強化する。
+$$\Delta w_{Link} = \eta \cdot R(t) \cdot Pre_{slow, j}(t)$$
 
-#### B. 強化学習 (RL: Dopamine Modulation)
-環境からの報酬信号 $R(t)$ に基づき、シナプスを強化または抑制する。
-$$\Delta w_{RL} = \eta \cdot R(t) \cdot Pre_{slow, j}(t) \cdot \lambda_{RL}$$
+* $R(t)$: 思考野が判断した価値（報酬）。
+* $Pre_{slow, j}(t)$: 記憶野に残る過去の痕跡。
 
-* $R(t) > 0$: **LTP (Long-Term Potentiation)** - 正の報酬による強化。
-* $R(t) < 0$: **LTD (Long-Term Depression)** - 罰（誤答）による抑制。
-* $R(t) = 0$: 変化なし。
+#### B. 自然忘却 (Decay)
+$$w_{new} = w_{old} \cdot (1 - \lambda_{decay})$$
 
-この組み合わせにより、**「意味のある瞬間に（SRG）」**かつ**「結果が良かった行動（RL）」**のみを学習することが可能となる。
+* これにより、記憶野の結合は永続的な知識にはならず、状況が変われば消滅する「短期記憶」としての性質を持つ。
+
+### 動作フロー
+1.  **Input:** Interface経由で刺激が入力され、MCに痕跡が残る。
+2.  **Reasoning & Action:** TCが推論し、反射または記憶に基づいた行動を行う。
+3.  **Association:** TCが報酬を検知すると、MC内の「痕跡」と「現在の状態」が結びつく。
+4.  **Decay:** 時間経過とともに結合は解消され、メモリは解放される。

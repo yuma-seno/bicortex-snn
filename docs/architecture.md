@@ -1,36 +1,39 @@
 # Network Architecture & Topology
 
 ## 1. 領域マップ (ID Map)
+物理的なニューロンは以下の2領域のみで構成される。
+
 * **思考野 (Thinking Cortex / TC):** $0 \dots N_{th}-1$
+    * **役割:** **高度な推論、世界モデルの保持、外部環境の認識、評価。**
+    * **特性:** 固定 (Fixed)。事前トレーニングによって構築された「不変の知能」。
 * **記憶野 (Memory Cortex / MC):** $N_{th} \dots N_{total}-1$
+    * **役割:** **短期記憶の保持、一時的な文脈の結合 (Temporary Association)。**
+    * **特性:** 可塑 (Plastic)。ただし、これは長期的なスキルの獲得ではなく、直近の出来事の因果関係を一時的に記録するために変化する。
 
 ## 2. 結合トポロジー (Connectivity)
 
-### A. Thinking Internal & Projection ($W_{fixed}$)
-* **経路:** `Input` $\to$ `Hidden` $\to$ `Motor` および `Thinking` $\to$ `Memory`
-* **可塑性:** **なし (Fixed)**。
-* **役割:** 事前学習済みモデル（CNN等）の特徴抽出能力と、文脈注入（Context Injection）を担う。
+### A. Thinking Internal ($W_{fixed}$)
+* **経路:** `Input` $\to$ `Hidden` $\to$ `Motor` (思考野内部)
+* **実体:** 事前学習済みの重み行列。
+* **役割:** 入力に対する解釈や推論はすべてここで行われる。BC-SNNの「賢さ」はここに依存する。
 
-### B. Recurrent Reservoir ($W_{rec}$)
-* **経路:** `Memory` $\leftrightarrow$ `Memory`
-* **意味:** 記憶野内部での情報の結びつき（連想）や、時間的な反響を形成する。
-* **初期化:** 全結合（ただし初期重みは 0.0 または微弱）。
-* **可塑性:** **あり (Plastic)**。
-    * **本アーキテクチャの核となる学習領域。**
-    * **3要素学習則 (3-Factor Learning):**
-        1.  **Presynaptic Activity:** 入力側の発火（またはトレース）。
-        2.  **Postsynaptic Activity:** 出力側の発火。
-        3.  **Neuromodulator (Reward):** ドーパミン等の報酬信号による強化・抑制。
+### B. The Interface ($W_{inter}$)
+* **経路:** `Thinking` $\leftrightarrow$ `Memory` (領域間の相互結合)
+* **実体:** 思考野ニューロンと記憶野ニューロンを直接結ぶシナプス結合。
+* **役割:** 思考野で処理された「意味」や「評価」を、記憶野へ一時保存するための書き込み/読み出しパス。
+* **可塑性:** **キャリブレーション時のみあり**。運用時は固定。
 
-### C. Interface ($W_{inter}$)
-* **経路:** `Memory` $\to$ `Hidden / Motor` (Readout)
-* **意味:** 記憶野の特定のパターンが、どのような思考・行動を誘発するかを定義する。
-* **可塑性:** **条件付き可塑 (Conditionally Plastic)**。
-    * 基本設計としては固定だが、強化学習（RL）タスクにおいては、誤った行動を抑制するために可塑性を持たせることがある。
+### C. Recurrent Reservoir ($W_{rec}$)
+* **経路:** `Memory` $\leftrightarrow$ `Memory` (記憶野内部)
+* **実体:** 記憶野ニューロン同士のリカレント結合。
+* **可塑性:** **あり (Plastic / Real-time)**。
+    * **役割:** 「学習」ではなく**「痕跡の結合 (Trace Binding)」**。
+    * 過去の事象（Trace）と現在の事象（Activity）を、報酬信号をトリガーとして一時的に結びつけることで、時間的な文脈を形成する。
 
 ## 3. 安定化機構 (Stabilization)
-* **Neural Adaptation (順応):** ニューロンの発火ごとの閾値上昇による恒常性維持。内部結合が強化されても、無限の発火暴走（Bursting）を防ぐ安全装置として機能する。
-* **Surgical Wiring (初期化時):** 不要なショート（短絡）を防ぐため、学習対象以外のランダムな背景結合は初期状態では切断しておく。
+* **Synaptic Decay (忘却):** 記憶野の結合は、強化され続けない限り自然に減衰する。これにより、記憶野は常に「直近の重要な文脈」のみを保持する状態に保たれる。
+* **State Reset (状態リセット):** タスクの区切りでトレースをリセットする。
 
-## 4. 将来的な拡張・課題 (Future Work)
-（変更なし）
+## 4. メカニズムの要点
+* **推論 (Reasoning):** 思考野が担当。入力から最適な解を導き出す。
+* **文脈 (Context):** 記憶野が担当。思考野が出した結論（行動や評価）を、時間軸上で結びつける。
