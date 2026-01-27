@@ -3,54 +3,65 @@
 ## 1. Neuron Model (LIF with Trace)
 
 ### 数式定義
-$$v_i(t) = v_i(t-1) \cdot \alpha + I_{ext}(t) + \sum_{j} w_{ij} x_{fast, j}(t-1)$$
-$$v_{th} = v_{base}$$
+計算効率とスパースな発火特性を得るため、Leaky Integrate-and-Fire (LIF) モデルを採用する。
+
+$$v_i(t) = v_i(t-1) \cdot \alpha_{decay} + I_{ext}(t) + I_{syn}(t)$$
+$$I_{syn}(t) = \sum_{j} w_{ij} x_{fast, j}(t-1)$$
+
+* **発火条件:** $v_i(t) \ge v_{th}$ の場合、$S_i(t) = 1, v_i(t) = 0$ とし、その後不応期に入る。
 
 ### コード上の変数対応 (`src/core/engine.py`)
 
-| 数式記号 | 変数名 | 説明 | 設定値(例) |
+| 数式記号 | 変数名 | 説明 | 設定値 (Default) |
 | :--- | :--- | :--- | :--- |
-| $v_i(t)$ | `self.v` | 膜電位 | 初期値 0.0 |
-| $\alpha$ | `self.alpha` | 電圧減衰係数 | $\tau_m=20ms$ |
-| $v_{base}$ | `self.v_base` | 基準閾値 | **5.0** (ノイズ耐性のため高めに設定) |
+| $v_i(t)$ | `self.v` | 膜電位 | Initial 0.0 |
+| $\alpha_{decay}$ | `self.alpha` | 電圧減衰係数 | $\exp(-dt/\tau_m), \tau_m=20ms$ |
+| $v_{th}$ | `self.v_base` | 発火閾値 | **5.0** (ノイズ耐性のため高めに設定) |
+| $t_{ref}$ | `self.refractory_steps`| 不応期 | **2.0ms** |
 
 ---
 
 ## 2. Dual Traces (2つのトレース変数)
 
-* **$x_{fast}$ (即時トレース):** $\tau \approx 5ms$。シナプス後電流(PSC)。信号伝達を担う。
-* **$e_{slow}$ (適格性トレース):** $\tau \approx 2000ms$。学習用。ニューロン発火後、長時間その「痕跡」を残し、遅延した報酬との結びつきを可能にする。
+時間的な因果関係を学習するため、時定数の異なる2つのトレース変数を使用する。
+
+### 2.1 即時トレース ($x_{fast}$)
+シナプス後電流 (PSC) の立ち上がりを表現する速いトレース。
+$$x_{fast, i}(t) = x_{fast, i}(t-1) \cdot \alpha_{fast} + S_i(t)$$
+
+* **時定数:** $\tau_{fast} = 5.0ms$
+* **役割:** ニューロン間の信号伝達。
+
+### 2.2 適格性トレース ($e_{slow}$)
+学習用の長期記憶痕跡。報酬やゲート信号が遅れて到達した際に、過去の原因を特定するために用いられる。
+$$e_{slow, i}(t) = e_{slow, i}(t-1) \cdot \alpha_{slow} + S_i(t)$$
+
+* **時定数:** $\tau_{slow} = 2000.0ms$ (2.0s)
+* **役割:** 時間差学習 (Temporal Credit Assignment)。
+
+---
 
 ## 3. Learning Algorithm: Semantic Resonance Gating (SRG)
 
-本アーキテクチャ独自の学習制御メカニズム。
-「常に学習する」のではなく、**「意味がある（共鳴している）時だけゲートを開き、痕跡を結びつける」** ことで、低コストかつノイズに強い学習を実現する。
+### 3.1 ゲート信号 $G(t)$ (Moving Average Logic)
+思考野の**概念ニューロン群 ($Concept$)** の活動総量を監視し、その**移動平均 (Moving Average)** が閾値を超えた場合にのみ学習を許可する。これにより、瞬間的なノイズによる誤学習を防ぐ。
 
-### 3.1 ゲート信号と調節信号
-SRGは以下の2つの信号によって制御される。
+$$A_{ma}(t) = A_{ma}(t-1) \cdot (1 - \alpha_{ma}) + \left( \sum_{k \in TC_{concept}} S_k(t) \right) \cdot \alpha_{ma}$$
 
-1.  **Thinking Activity Gate ($G(t)$):**
-    思考野が活発に活動している（何らかの概念を処理している）かどうか。
-    $$G(t) = 1 \quad \text{if} \quad Activity_{TC}(t) \ge Threshold \quad \text{else} \quad 0$$
+$$G(t) = 1 \quad \text{if} \quad A_{ma}(t) \ge \theta_{gate} \quad \text{else} \quad 0$$
 
-2.  **Neuromodulator Signal ($D(t)$):**
-    思考野の本能回路（Modulatorニューロン）が放出したドーパミン量。
-    $$D(t) = \sum S_{modulator}(t)$$
+* **平滑化係数:** $\alpha_{ma} = 0.2$
+* **ゲート閾値:** $\theta_{gate} = \max(1.0, N_{concept} \times 0.1)$ (概念ニューロンの10%程度が活性化している状態)
 
-### 3.2 3要素更新則 (3-Factor Rule)
-シナプス結合の更新 $\Delta w$ は、ゲート信号または調節信号によってトリガーされる。
+### 3.2 インターフェース結合の更新則
+ゲートが開いている時に、「過去の文脈」と「現在の行動」を関連付ける。
 
-$$\Delta w_{Link} = \eta \cdot \underbrace{(D(t) + c_{int} \cdot G(t))}_{\text{Resonance Factor}} \cdot Pre_{slow, j}(t)$$
+$$\Delta w_{mj}(t) = \eta \cdot G(t) \cdot S_{motor, j}(t) \cdot e_{slow, m}(t)$$
 
-* **共鳴係数 (Resonance Factor):**
-    * $D(t)$: 外的な報酬・罰による強力な強化信号（教師あり/強化学習）。
-    * $c_{int} \cdot G(t)$: 思考野の活性化に伴う、微弱な自発的学習信号（教師なし/好奇心）。$c_{int}$ は内部動機係数（通常は $D(t)$ より小さい）。
-* **強化:** 報酬がある時、または思考野が強い意味を感じている時に、過去の痕跡 ($Pre$) が結び付けられる。
-* **忘却:** 共鳴がない（$G(t)=0$ かつ $D(t)=0$）状態では、シナプスは自然減衰 ($Decay$) する。
-
-### 動作フロー
-1.  **Trace:** 刺激入力により、MCに痕跡 ($e_{slow}$) が残る。
-2.  **Resonance:**
-    * **Case A (Reward):** 本能回路が反応し、Modulatorが発火 ($D(t) > 0$)。
-    * **Case B (Curiosity):** 思考野が強く活性化し、意味を見出す ($G(t)=1$)。
-3.  **Gating:** システムが共鳴状態に入り、痕跡を持つシナプスが強化される。
+* $m \in MC$ (Presynaptic / 記憶野)
+* $j \in TC_{motor}$ (Postsynaptic / 思考野運動)
+* $\eta$: 学習率 (`self.learning_rate` = 0.05)
+* **安定化処理 (Global Weight Decay):**
+    * 重みの発散を防ぐため、毎ステップわずかな減衰を適用する。
+    * $w_{mj} \leftarrow w_{mj} \cdot (1 - \lambda_{decay})$
+    * $\lambda_{decay} = 0.001$

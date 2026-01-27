@@ -1,41 +1,37 @@
 # Network Architecture & Topology
 
 ## 1. 領域マップ (ID Map)
-物理的なニューロンは以下の2領域のみで構成される。
+物理的なニューロンは単一の配列上に配置され、ID範囲によって役割が区分される。
 
-* **思考野 (Thinking Cortex / TC):** $0 \dots N_{th}-1$
-    * **構成要素:** Sensory (感覚), Hidden (中間・調節), Motor (運動)。
-    * **役割:** **推論、世界モデルの保持、評価（Modulatorによるドーパミン生成）。**
-    * **特性:** 固定 (Fixed)。事前トレーニングによって構築された「不変の知能」。
-* **記憶野 (Memory Cortex / MC):** $N_{th} \dots N_{total}-1$
-    * **役割:** **短期記憶の保持、一時的な文脈の結合 (Temporary Association)。**
-    * **特性:** 可塑 (Plastic)。直近の出来事の因果関係を一時的に記録するために変化する。
+| 領域名 | サブセット | 役割 | 特性 |
+| :--- | :--- | :--- | :--- |
+| **Thinking Cortex (TC)** | **Sensory** | 外部センサー入力 | 固定 (Fixed) |
+| | **Concept** | 特徴抽出・意味認識 (**SRG監視対象**) | 固定 (Fixed) |
+| | **Motor** | 行動生成・出力 | 固定 (Fixed) |
+| **Memory Cortex (MC)** | - | 文脈保持・リザーバ演算 | **可塑 (Plastic)** |
 
-## 2. 結合トポロジー (Connectivity)
+## 2. 記憶野 (Memory Cortex) の構成
+* **Reservoir Computing:** ランダムかつスパースに結合されたリカレント回路。
+* **E/I Balance (Dale's Law):**
+    * **Exc (興奮性):** 80% (出力重みが正)
+    * **Inh (抑制性):** 20% (出力重みが負)
+    * これにより記憶活動の爆発を防ぎ、安定した「残響」を生成する。
 
-### A. Thinking Internal ($W_{fixed}$)
-* **経路:** `Input` $\to$ `Hidden` $\to$ `Motor` (思考野内部)
-* **実体:** 事前学習済みの重み行列。
-* **役割:** 入力に対する解釈や推論、および**本能的な報酬評価（Modulatorの発火）**はここで行われる。
+## 3. 結合トポロジーと情報の流れ
 
-### B. The Interface ($W_{inter}$)
-* **経路:** `Thinking` $\leftrightarrow$ `Memory` (領域間の相互結合)
-* **実体:** 思考野ニューロンと記憶野ニューロンを直接結ぶシナプス結合。
-    * **Projection ($TC \to MC$):** 思考野の信号を記憶野へ書き込む。**固定 (Fixed)**。
-    * **Readout ($MC \to TC$):** 記憶野の痕跡を行動へ変換する。**可塑 (Plastic)**。
-* **役割:** 思考野で処理された「意味」を記憶野へ保存し、記憶野の「文脈」を行動へ反映させるパス。
+### 3.1 固定結合 (Fixed / Pre-trained)
+これらは初期化時または学習済みモデルのロード時に設定され、SRGによる更新を受けない。
 
-### C. Recurrent Reservoir ($W_{rec}$)
-* **経路:** `Memory` $\leftrightarrow$ `Memory` (記憶野内部)
-* **実体:** 記憶野ニューロン同士のリカレント結合。
-* **可塑性:** **あり (Plastic / Real-time)**。
-    * **役割:** **「痕跡の保持と結合 (Trace Binding)」**。
-    * 過去の事象（Trace）と現在の事象（Activity/Reward）を、**意味的共鳴（思考野の活性化 または Modulator活動）**をトリガーとして一時的に結びつける。
+* **$TC_{sensory} \to TC_{concept}$:** 入力を意味的特徴へ変換する（CNNバックボーン等）。
+* **$TC_{concept} \to TC_{motor}$:** 基本的な反射行動や推論結果を出力する。
+* **$TC_{concept} \to MC$ (Injection):** 現在認識している「概念」を記憶野へブロードキャストする。
 
-## 3. 安定化機構 (Stabilization)
-* **Synaptic Decay (忘却):** 記憶野関連の結合（$W_{rec}, W_{readout}$）は、**共鳴（強化）が発生しない限り**自然に減衰する。
-* **State Reset (状態リセット):** タスクの区切りでトレースをリセットする。
+### 3.2 可塑的結合 (Plastic / SRG Target)
+SRG（意味的共鳴ゲーティング）によってリアルタイムに重みが更新される結合。
 
-## 4. メカニズムの要点
-* **推論 (Reasoning):** 思考野が担当。入力から最適な解を導き出す。
-* **文脈 (Context):** 記憶野とInterface(Readout)が担当。思考野の**活動（意味）や評価（報酬）**に基づき、直前の知覚情報を行動と結びつける。
+1.  **$MC \to TC_{motor}$ (Interface):**
+    * **最重要結合。**
+    * 「過去の文脈($MC$)」を「現在の行動($Motor$)」に直結させる。
+    * これにより、思考野が反射的に行った行動が、その直前の文脈と紐づけられる（条件付け）。
+2.  **$MC \to MC$ (Recurrent):**
+    * 短期記憶の保持時間を調整するために微調整される。
