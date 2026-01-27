@@ -19,19 +19,20 @@
 
 ## 3. 結合トポロジーと情報の流れ
 
-### 3.1 固定結合 (Fixed / Pre-trained)
-これらは初期化時または学習済みモデルのロード時に設定され、SRGによる更新を受けない。
+### 3.1 固定結合 (Fixed / Pre-calibrated)
+これらは初期化時またはキャリブレーション時に設定され、SRGによる更新を受けない。
 
-* **$TC_{sensory} \to TC_{concept}$:** 入力を意味的特徴へ変換する（CNNバックボーン等）。
-* **$TC_{concept} \to TC_{motor}$:** 基本的な反射行動や推論結果を出力する。
-* **$TC_{concept} \to MC$ (Injection):** 現在認識している「概念」を記憶野へブロードキャストする。
+* **Thinking Cortex:**
+    * $TC_{sensory} \to TC_{concept}$
+    * $TC_{concept} \to TC_{motor}$
+* **Interface:**
+    * **$TC_{concept} \to MC$ (Injection):** 概念を記憶野へ投影する。
+    * **$MC \to TC_{concept}$ (Recall):** 記憶活動を概念へフィードバックする。
 
 ### 3.2 可塑的結合 (Plastic / SRG Target)
 SRG（意味的共鳴ゲーティング）によってリアルタイムに重みが更新される結合。
 
-1.  **$MC \to TC_{motor}$ (Interface):**
-    * **最重要結合。**
-    * 「過去の文脈($MC$)」を「現在の行動($Motor$)」に直結させる。
-    * これにより、思考野が反射的に行った行動が、その直前の文脈と紐づけられる（条件付け）。
-2.  **$MC \to MC$ (Recurrent):**
-    * 短期記憶の保持時間を調整するために微調整される。
+* **$MC \to MC$ (Recurrent):**
+    * 記憶野内部の結合。
+    * 過去の記憶状態（Pre）と現在の記憶状態（Post）の因果関係を学習する。
+    * これにより、「ベルの記憶状態」が自律的に「エサの記憶状態」へ遷移するようになる。

@@ -2,7 +2,7 @@
 
 **Bi-Cortex Spiking Neural Network: An Autonomous Real-Time Learning Architecture for Edge Devices**
 
-![Status](https://img.shields.io/badge/Status-Phase%202%20(Visual)-orange)
+![Status](https://img.shields.io/badge/Status-Phase%201%20Complete-green)
 ![Python](https://img.shields.io/badge/Python-3.10%2B-green)
 ![License](https://img.shields.io/badge/License-MIT-lightgrey)
 
@@ -17,17 +17,34 @@
 
 1.  **思考野 (Thinking Cortex / TC):**
     * **役割:** 高度な推論、世界認識、評価、反射。
-    * **構造:** CNNやLLMなどの事前学習済みモデルをバックボーンとして利用します。
-    * **特性:** パラメータは**固定 (Fixed)**。ここが「知能」の本体であり、運用中に再学習することはありません。
+    * **特性:** パラメータは**固定 (Fixed)**。
 2.  **記憶野 (Memory Cortex / MC):**
     * **役割:** 短期記憶の保持、時間的文脈の統合。
     * **構造:** ランダムに結合されたリザーバ層。
-    * **特性:** **内部結合が動的 (Plastic)** に変化する連想記憶バッファ。思考野の推論結果を一時的に保持・結合し、直近の状況に適応します。
+    * **特性:** **内部結合 ($MC \to MC$) のみが動的 (Plastic)** に変化します。思考野との入出力（Interface）は固定されており、記憶野内部の回路を書き換えることで、入力（文脈）に対する応答（想起）を変化させます。
 
 **インターフェース (Interface):**
-これら2つの領域を繋ぐ「シナプス結合」のことを指します。思考野の学習後、思考野の信号を記憶野へ適切にマッピングするために調整され、運用時は固定されます。
+これら2つの領域を繋ぐ結合です。本モデルでは、事前に概念と記憶状態の対応付け（Calibration）が行われており、運用時は**固定**されます。
+* **Context Injection ($Concept \to Memory$):** 概念 $\to$ 記憶パターン
+* **Recall ($Memory \to Concept$):** 記憶パターン $\to$ 概念想起
 
 詳細な技術仕様については、[仕様書ドキュメント](docs/仕様書.md) を参照してください。
+
+---
+
+## 🧪 実行デモ (Run Demo)
+
+**Phase 1.4: パブロフ条件付け実験**
+「ベル（予兆）」と「エサ（概念）」の連想学習を行い、ベルのみでエサを想起（幻覚）させるデモを実行できます。
+
+```bash
+# 実験スクリプトの実行
+python experiments/phase1_4_pavlov/run_experiment.py
+
+```
+
+* **CLI出力:** 学習の進捗（重み変化）、ゲート開閉率、ニューロン活動のヒートマップが表示されます。
+* **グラフ出力:** `reports/phase1_4_pavlov/result_success_balanced.png` に詳細な波形が保存されます。
 
 ---
 
