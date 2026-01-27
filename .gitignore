@@ -32,7 +32,7 @@ env.bak/
 venv.bak/
 
 # --- IDE & Editors ---
-.vscode/
+.vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
