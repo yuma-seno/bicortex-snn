@@ -22,6 +22,7 @@ class BiCortexEngine:
                  learning_rate: float = 0.05,
                  gate_ratio: float = 0.02,
                  global_decay: float = 0.001,
+                 intrinsic_drive: float = 0.2, # Added: 内部動機（好奇心）係数
                  w_scale_fixed: float = 0.0,
                  w_scale_rec: float = 0.05,
                  seed: int = 42):
@@ -37,6 +38,7 @@ class BiCortexEngine:
             learning_rate (float): シナプス可塑性の学習率
             gate_ratio (float): SRGゲートを開くための活動閾値の割合 (0.02 = 2%)
             global_decay (float): 自然忘却率。報酬がない結合を減衰させる係数
+            intrinsic_drive (float): ゲートが開いた際の自発的な学習強度 (0.0~1.0)
             
             w_scale_fixed (float): 思考野内部(固定)の初期結合強度スケール
             w_scale_rec (float): 記憶野内部(可塑)の初期結合強度スケール
@@ -77,6 +79,7 @@ class BiCortexEngine:
         self.learning_rate = learning_rate
         self.gate_threshold = max(0.1, self.n_input * gate_ratio)
         self.global_decay = global_decay
+        self.intrinsic_drive = intrinsic_drive
         
         self.w_scale_fixed = w_scale_fixed
         self.w_scale_rec = w_scale_rec
@@ -201,30 +204,38 @@ class BiCortexEngine:
     def _update_weights_intrinsic(self, spikes: np.ndarray):
         """
         脳内部の活動のみに基づく学習則。
-        外部教師信号は一切使用せず、Modulatorニューロンの活動を報酬として利用する。
+        外部教師信号は一切使用せず、SRG (Semantic Resonance Gating) によって制御される。
         """
         # A. Decay (自然忘却 / Extinction)
-        # 報酬がない結合は時間とともに減衰する
+        # 共鳴がない結合は時間とともに減衰する
+        # ※本来は「共鳴していないシナプスのみ」減衰させるのが正確だが、計算効率のため全体に適用
         if self.global_decay > 0:
              self.W[self.mask_plastic] *= (1.0 - self.global_decay)
 
-        # B. Neuromodulator Release (ドーパミン放出)
-        # 定義されたModulatorニューロンの発火量を計測
+        # B. Calculate Resonance Factor (共鳴係数の計算)
+        # 1. External Reward: Modulatorニューロンの発火（ドーパミン）
         dopamine_level = np.sum(spikes[self.idx_modulator]) * 5.0
         
-        # 学習条件: (ゲートが開いている OR ドーパミンが出ている)
-        # ここではパブロフ学習のため、ドーパミンが出ていない時は学習をスキップ
-        if dopamine_level <= 0: return
+        # 2. Intrinsic Drive: ゲートが開いている（思考野が意味を感じている）時の好奇心
+        curiosity_level = self.intrinsic_drive * self.last_gate_status
+        
+        # Resonance Factor = Reward + Curiosity
+        resonance_factor = dopamine_level + curiosity_level
+        
+        # 学習条件: 共鳴係数が正であれば学習を実行
+        if resonance_factor <= 0: return
 
         # C. 3-Factor Update Rule
-        # Delta W = LearningRate * Dopamine * Pre_Trace
+        # Delta W = LearningRate * ResonanceFactor * Pre_Trace
         fired = np.where(spikes > 0)[0]
         pre_trace = self.e_slow
         W_MAX = 5.0; W_MIN = -5.0
         
         # 更新対象: 発火したニューロン(Post)
         targets = fired
-        # ドーパミンが強い場合は、発火していなくてもTraceがあるシナプスも強化（遡及的学習）
+        
+        # ドーパミンが非常に強い場合(>1.0)は、発火していなくてもTraceがあるシナプスも強化（遡及的学習）
+        # ※Curiosityのみの場合は、発火したシナプスのみを強化する（誤結合防止）
         if dopamine_level > 1.0:
             active_trace_indices = np.where(self.e_slow > 0.1)[0]
             targets = np.unique(np.concatenate([fired, active_trace_indices]))
@@ -237,7 +248,7 @@ class BiCortexEngine:
             pre = pre_trace[mask]
             
             # 更新量の計算
-            delta = self.learning_rate * dopamine_level * pre
+            delta = self.learning_rate * resonance_factor * pre
             
             # 適用とクリッピング
             new_w = w + delta
