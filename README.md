@@ -82,13 +82,14 @@ bicortex-snn/
 │   ├── nvidia/        # CUDA環境用定義
 │   ├── amd/           # ROCm環境用定義
 │   └── entrypoint.sh  # 共通エントリーポイント
-├── docs/              # 技術仕様書、数式定義、実験レポート
+├── docs/              # 技術仕様書、数式定義
+├── reports/           # 実験レポート、図表
+├── experiments/       # 実験スクリプト
 ├── src/               # ソースコード
 │   ├── core/          # ニューロンモデル、SNNエンジン (NumPy実装)
 │   ├── envs/          # 実験環境 (GridWorld, Games)
 │   └── utils/         # 可視化ツール、ロガー
 ├── tests/             # 単体テスト
-├── notebooks/         # 実験用 Jupyter Notebooks
 ├── requirements.txt   # Python依存ライブラリ
 └── README.md          # 本ファイル
 
