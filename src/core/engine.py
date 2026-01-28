@@ -16,13 +16,13 @@ class BiCortexEngine:
                  n_motor: int, 
                  n_mem: int, 
                  dt: float = 1.0, 
-                 learning_rate: float = 0.05,
-                 gate_ratio: float = 0.1, 
-                 global_decay: float = 0.001,
-                 adaptation_step: float = 0.0, 
+                 learning_rate: float = 0.001,
+                 gate_ratio: float = 0.15, 
+                 global_decay: float = 0.005,
+                 adaptation_step: float = 0.3, 
                  adaptation_tau: float = 100.0,
                  refractory_period: float = 2.0,
-                 w_max_clip: float = 5.0,
+                 w_max_clip: float = 0.8,
                  seed: int = 42):
         """
         エンジンの初期化
