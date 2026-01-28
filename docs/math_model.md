@@ -24,7 +24,7 @@ $$A_i(t) = A_i(t-1) \cdot \alpha_{adapt} + S_i(t-1) \cdot \delta_{adapt}$$
 | $\alpha_{decay}$ | `self.alpha` | 電圧減衰係数 | $\tau_m=20ms$ |
 | $v_{base}$ | `self.v_base` | 基礎閾値 | **5.0** |
 | $A_i(t)$ | `self.adaptation` | 順応（疲労）変数 | - |
-| $\delta_{adapt}$ | `self.adaptation_step` | 発火ごとの閾値上昇量 | **0.2** (Balance) |
+| $\delta_{adapt}$ | `self.adaptation_step` | 発火ごとの閾値上昇量 | **0.3** (Balance) |
 | $\alpha_{adapt}$ | `self.decay_adapt` | 順応の回復係数 | $\tau_{adapt}=100ms$ |
 | $t_{ref}$ | `self.refractory_steps`| 不応期 | **2.0ms** |
 
