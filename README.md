@@ -2,15 +2,9 @@
 
 **Bi-Cortex Spiking Neural Network: An Autonomous Real-Time Learning Architecture for Edge Devices**
 
-![Status](https://img.shields.io/badge/Status-Phase%201%20Complete-green)
-![Python](https://img.shields.io/badge/Python-3.10%2B-green)
-![License](https://img.shields.io/badge/License-MIT-lightgrey)
-
 ## 📖 概要 (Overview)
 
-**Bi-Cortex SNN (BC-SNN)** は、エッジデバイス上での自律的なリアルタイム適応を目指す、新しいアーキテクチャの Spiking Neural Network (SNN) 構想です。
-
-従来の深層学習（誤差逆伝播法）に依存せず、**「意味的共鳴ゲーティング (Semantic Resonance Gating / SRG)」** と呼ばれる独自の局所則を用いることで、低演算コストでの文脈適応の実現を目指します。
+**Bi-Cortex SNN (BC-SNN)** は、エッジデバイス上での自律的なリアルタイム適応および、高度な世界の理解と推論を目指した新しいスパイキングニューラルネットワーク（SNN）アーキテクチャです。
 
 ### コア・コンセプト
 本モデルは、単一のニューロン群を機能的に2つの領域（Cortex）に区分して動作します。
